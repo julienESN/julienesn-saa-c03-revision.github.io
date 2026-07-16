@@ -185,6 +185,27 @@ main{padding:0 34px 90px;min-width:0}
 .finops p{font-size:13.5px;color:#BFEBD6;line-height:1.55}
 .finops p b{color:#E4FBF0}
 
+/* ---------- Diagrammes ---------- */
+.diagram{margin:20px 24px 4px;background:var(--inset);border:1px solid var(--line-soft);border-radius:10px;padding:14px 14px 8px}
+.diagram svg{width:100%;height:auto;display:block}
+.d-head{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 2px 8px;display:flex;align-items:center;gap:8px}
+.d-head::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--blue)}
+.d-box{fill:var(--surface-2);stroke:var(--line);stroke-width:1}
+.d-orange{fill:rgba(255,157,46,.10);stroke:rgba(255,157,46,.55)}
+.d-green{fill:rgba(62,207,142,.08);stroke:rgba(62,207,142,.5)}
+.d-blue{fill:rgba(92,168,255,.08);stroke:rgba(92,168,255,.5)}
+.d-ghost{fill:transparent;stroke:var(--line);stroke-dasharray:4 4}
+.d-zone{fill:rgba(255,255,255,.015);stroke:var(--line-soft);stroke-dasharray:5 5}
+.d-ztitle{font-family:var(--mono);font-size:10px;fill:var(--faint);letter-spacing:.08em}
+.d-t{font-family:var(--mono);font-size:11.5px;fill:var(--text);text-anchor:middle;font-weight:500}
+.d-t-orange{fill:var(--orange)}.d-t-green{fill:var(--green)}.d-t-blue{fill:var(--blue)}.d-t-ghost{fill:var(--muted)}
+.d-s{font-family:var(--mono);font-size:9px;fill:var(--faint);text-anchor:middle}
+.d-arrow{stroke:var(--faint);stroke-width:1.3;fill:none}
+.d-dash{stroke-dasharray:4 4}
+.d-ah{fill:var(--faint)}
+.d-al{font-family:var(--mono);font-size:9.5px;fill:var(--muted);text-anchor:middle}
+.d-cap{font-family:var(--mono);font-size:10px;fill:var(--faint)}
+
 /* ---------- Réflexes view ---------- */
 .view{display:none}
 .view.active{display:block}
@@ -267,7 +288,7 @@ footer b{color:var(--muted);font-weight:500}
   .topbar{padding:0 14px;gap:10px}
   .brand{font-size:11.5px}
   .tab{padding:6px 10px;font-size:11.5px}
-  .notes,.triggers,.finops{margin-left:16px;margin-right:16px}
+  .notes,.triggers,.finops,.diagram{margin-left:16px;margin-right:16px}
   .notes{padding:16px 0 6px}
   .fcard{padding:30px 22px}
 }
@@ -583,7 +604,31 @@ notes:[
 triggers:[
 {q:"Déployer du code sans gérer l'infra, en gardant le contrôle",a:"Elastic Beanstalk"}
 ],
-finops:"Beanstalk est gratuit mais crée des ressources par défaut parfois surdimensionnées — vérifier les types d'instances des environnements dev (single instance suffit souvent)."}
+finops:"Beanstalk est gratuit mais crée des ressources par défaut parfois surdimensionnées — vérifier les types d'instances des environnements dev (single instance suffit souvent)."},
+
+{id:"s3adv",icon:"S3+",name:"S3 Avancé",tag:"Lifecycle · events · perf",
+notes:[
+{t:"Lifecycle Rules",b:"Transitions <b>automatiques</b> entre classes (ex : 30 j → IA, 90 j → Glacier) + <b>expiration</b> (suppression auto : vieilles versions, uploads multi-part incomplets). <b>S3 Analytics</b> aide à décider quand basculer Standard → IA."},
+{t:"Requester Pays",b:"Le <b>demandeur</b> paie le transfert (le propriétaire garde le coût du stockage) → partager de gros datasets sans payer l'egress. Requester <b>authentifié</b> obligatoire."},
+{t:"Event Notifications",b:"Réagir aux événements (<code>s3:ObjectCreated:*</code>…) → <b>SNS / SQS / Lambda</b>. <span class='warn'>Resource policy sur la destination</span> : Principal <code>s3.amazonaws.com</code> + action d'écriture (sinon « Unable to validate destination »). Filtrage prefix/suffix. <b>EventBridge</b> = tous les événements, 18+ destinations, filtrage JSON avancé, archive & replay."},
+{t:"Performance",b:"<b>3500 PUT / 5500 GET par seconde et par préfixe</b> (répartir sur plusieurs préfixes = scale). <b>Multi-part upload</b> : recommandé > 100 Mo, obligatoire > 5 Go, parallélise. <b>Transfer Acceleration</b> : upload via edge location → backbone AWS (longue distance). <b>Byte-Range Fetches</b> : télécharger des morceaux en parallèle, ou juste l'en-tête."},
+{t:"Batch Operations",b:"Opérations <b>en masse</b> sur des objets existants : chiffrer tout, copier, restaurer depuis Glacier, modifier tags/metadata, invoquer Lambda. Se nourrit de <b>S3 Inventory</b> (liste des objets) + Athena (filtrer) → jobs avec retries, suivi de progression, rapport."},
+{t:"Storage Lens",b:"Analytics <b>usage & coûts</b> sur toute l'organisation (dashboard, 30 j d'historique). Métriques <b>gratuites</b> (usage, ~28 métriques) vs <b>payantes</b> (advanced : activity, prefix-level, recommandations, 15 mois de rétention)."}
+],
+triggers:[
+{q:"Automatiser Standard → IA → Glacier → suppression",a:"Lifecycle Rules"},
+{q:"Savoir quand basculer des objets en IA",a:"S3 Analytics"},
+{q:"Le consommateur du dataset paie le transfert",a:"Requester Pays"},
+{q:"Déclencher un traitement à chaque upload",a:"Event Notification → Lambda / SQS / SNS"},
+{q:"« Unable to validate destination » à la création d'une notif",a:"Resource policy de la destination (Principal s3.amazonaws.com)"},
+{q:"Filtrage avancé / multi-destinations / replay d'événements",a:"EventBridge"},
+{q:"Upload d'un fichier > 5 Go",a:"Multi-part upload (obligatoire ; recommandé > 100 Mo)"},
+{q:"Upload lent depuis l'autre bout du monde",a:"Transfer Acceleration (edge → backbone AWS)"},
+{q:"Télécharger en parallèle / une partie d'un objet",a:"Byte-Range Fetches"},
+{q:"Chiffrer des millions d'objets existants",a:"Batch Operations (+ S3 Inventory)"},
+{q:"Vue d'ensemble usage & coûts S3 de toute l'orga",a:"Storage Lens"}
+],
+finops:"<b>Lifecycle rules = le levier d'économie n°1</b> de tout AWS. <b>Storage Lens</b> (métriques gratuites) repère les buckets gaspilleurs à l'échelle de l'orga. <b>Requester Pays</b> refacture l'egress aux consommateurs de tes datasets."}
 ];
 </script>
 <script>
@@ -592,11 +637,251 @@ const $ = s => document.querySelector(s);
 
 function esc(x){return x} // contenu maîtrisé (mes propres notes)
 
+/* ============ Diagrammes SVG ============ */
+let _dgid = 0;
+function dg(d){
+  const id = "ah" + (_dgid++);
+  let s = `<svg viewBox="0 0 640 ${d.h}" role="img" aria-label="Schéma d'architecture"><defs><marker id="${id}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="d-ah"/></marker></defs>`;
+  d.e.forEach(e=>{
+    if(e.z){
+      s += `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="10" class="d-zone"/>`;
+      if(e.t) s += `<text x="${e.x+12}" y="${e.y+17}" class="d-ztitle">${e.t}</text>`;
+    } else if(e.b){
+      const k = e.k ? " d-"+e.k : "";
+      s += `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="8" class="d-box${k}"/>`;
+      const cx = e.x+e.w/2, cy = e.y+e.h/2;
+      const tk = e.k ? " d-t-"+e.k : "";
+      if(e.s){
+        s += `<text x="${cx}" y="${cy-2}" class="d-t${tk}">${e.b}</text><text x="${cx}" y="${cy+13}" class="d-s">${e.s}</text>`;
+      } else {
+        s += `<text x="${cx}" y="${cy+4}" class="d-t${tk}">${e.b}</text>`;
+      }
+    } else if(e.a){
+      const [x1,y1,x2,y2] = e.a;
+      s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="d-arrow${e.d?" d-dash":""}" marker-end="url(#${id})"/>`;
+      if(e.t) s += `<text x="${(x1+x2)/2}" y="${(y1+y2)/2-6}" class="d-al">${e.t}</text>`;
+    } else if(e.t !== undefined){
+      s += `<text x="${e.x}" y="${e.y}" class="d-cap">${e.t}</text>`;
+    }
+  });
+  return s + "</svg>";
+}
+
+const DIAGRAMS = {
+iam:{h:170,e:[
+{b:"User",x:30,y:35,w:90,h:40},
+{a:[120,55,163,55]},
+{b:"Groups",x:165,y:35,w:95,h:40},
+{a:[260,55,303,55],t:"policies"},
+{b:"Policy JSON",x:305,y:35,w:120,h:40,k:"blue"},
+{b:"EC2 / Lambda",x:30,y:110,w:130,h:40},
+{a:[160,130,193,130],t:"assume"},
+{b:"Rôle IAM",x:195,y:110,w:110,h:40,k:"orange"},
+{a:[305,130,348,130],t:"accès"},
+{b:"S3, RDS…",x:350,y:110,w:100,h:40,k:"ghost"},
+{x:475,y:45,t:"Root = setup only"},
+{x:475,y:62,t:"MFA partout"},
+{x:475,y:125,t:"jamais d'access keys"},
+{x:475,y:140,t:"en dur → rôles !"}
+]},
+ec2:{h:205,e:[
+{z:1,x:20,y:25,w:190,h:160,t:"CLUSTER"},
+{b:"EC2",x:45,y:55,w:60,h:30},{b:"EC2",x:115,y:55,w:60,h:30},{b:"EC2",x:45,y:92,w:60,h:30},{b:"EC2",x:115,y:92,w:60,h:30},
+{x:40,y:150,t:"même rack · latence min"},
+{x:40,y:166,t:"réseau max · 1 AZ"},
+{z:1,x:230,y:25,w:190,h:160,t:"SPREAD"},
+{b:"EC2",x:250,y:60,w:55,h:30},{b:"EC2",x:335,y:60,w:55,h:30},{b:"EC2",x:292,y:110,w:55,h:30},
+{x:245,y:160,t:"hardware distinct"},
+{x:245,y:176,t:"max 7 instances / AZ"},
+{z:1,x:440,y:25,w:185,h:160,t:"PARTITION"},
+{z:1,x:452,y:50,w:75,h:100,t:"P1"},
+{b:"EC2",x:462,y:80,w:55,h:26},{b:"EC2",x:462,y:114,w:55,h:26},
+{z:1,x:538,y:50,w:75,h:100,t:"P2"},
+{b:"EC2",x:548,y:80,w:55,h:26},{b:"EC2",x:548,y:114,w:55,h:26},
+{x:452,y:168,t:"Hadoop · Kafka"}
+]},
+ebs:{h:185,e:[
+{z:1,x:25,y:25,w:335,h:135,t:"AZ-A"},
+{b:"EC2",x:55,y:75,w:90,h:44},
+{a:[145,97,203,97],t:"attach"},
+{b:"EBS gp3",x:205,y:75,w:115,h:44,k:"orange",s:"provisionné"},
+{a:[320,85,413,62],t:"backup"},
+{b:"Snapshot",x:415,y:40,w:185,h:40,k:"blue",s:"incrémental → S3"},
+{a:[507,80,507,113]},
+{b:"autre AZ / région",x:415,y:115,w:185,h:40,k:"ghost"},
+{x:25,y:178,t:"st1/sc1 = jamais boot · Archive tier −75% · même AZ que l'instance !"}
+]},
+ami:{h:155,e:[
+{b:"EC2 customisée",x:25,y:55,w:145,h:44},
+{a:[170,77,213,77],t:"stop"},
+{b:"Create AMI",x:215,y:55,w:135,h:44,k:"orange",s:"+ snapshots EBS"},
+{a:[350,77,393,77],t:"launch"},
+{b:"Clones",x:395,y:55,w:100,h:44,s:"autre AZ"},
+{a:[495,77,538,77],d:1},
+{b:"autre région",x:540,y:55,w:90,h:44,k:"ghost"},
+{x:25,y:135,t:"AMI = régionale → copiable cross-région · golden AMI = boot rapide"}
+]},
+efs:{h:215,e:[
+{b:"EFS",x:245,y:25,w:150,h:44,k:"orange",s:"régional · NFS"},
+{z:1,x:25,y:105,w:190,h:80,t:"AZ-A"},
+{b:"mount target",x:40,y:138,w:105,h:28,k:"blue"},
+{b:"EC2",x:152,y:138,w:52,h:28},
+{z:1,x:225,y:105,w:190,h:80,t:"AZ-B"},
+{b:"mount target",x:240,y:138,w:105,h:28,k:"blue"},
+{b:"EC2",x:352,y:138,w:52,h:28},
+{z:1,x:425,y:105,w:190,h:80,t:"AZ-C"},
+{b:"mount target",x:440,y:138,w:105,h:28,k:"blue"},
+{b:"EC2",x:552,y:138,w:52,h:28},
+{a:[295,69,95,136]},
+{a:[320,69,293,136]},
+{a:[345,69,492,136]},
+{x:25,y:207,t:"Linux/POSIX only · Windows → FSx · élastique, paiement à l'usage"}
+]},
+concepts:{h:195,e:[
+{z:1,x:20,y:25,w:295,h:140,t:"VERTICAL — PLUS GROS"},
+{b:"t2.micro",x:50,y:78,w:85,h:34},
+{a:[135,95,188,95],t:"scale up"},
+{b:"t2.large",x:190,y:65,w:105,h:56,k:"orange"},
+{z:1,x:330,y:25,w:290,h:140,t:"HORIZONTAL — PLUS NOMBREUX"},
+{b:"EC2",x:348,y:82,w:58,h:32},
+{a:[406,98,453,98],t:"scale out"},
+{b:"EC2",x:455,y:55,w:58,h:30},{b:"EC2",x:525,y:55,w:58,h:30},{b:"EC2",x:490,y:105,w:58,h:30},
+{x:20,y:187,t:"Horizontal + multi-AZ = scalabilité ET haute disponibilité"}
+]},
+elb:{h:215,e:[
+{b:"Users",x:20,y:85,w:80,h:40},
+{a:[100,105,143,105]},
+{b:"ALB",x:145,y:85,w:100,h:44,k:"orange",s:"listener :80"},
+{a:[245,105,288,105],t:"règles"},
+{b:"Target Group",x:290,y:85,w:130,h:44,k:"blue",s:"health checks"},
+{z:1,x:460,y:20,w:160,h:82,t:"AZ-A"},
+{b:"EC2",x:478,y:52,w:55,h:30},{b:"EC2",x:543,y:52,w:55,h:30},
+{z:1,x:460,y:115,w:160,h:82,t:"AZ-B"},
+{b:"EC2",x:478,y:147,w:55,h:30},{b:"EC2",x:543,y:147,w:55,h:30},
+{a:[420,97,473,64]},
+{a:[420,113,473,160]},
+{x:20,y:155,t:"SG chaining :"},
+{x:20,y:170,t:"SG instances autorise le"},
+{x:20,y:185,t:"trafic depuis le SG de l'ALB"}
+]},
+asg:{h:205,e:[
+{b:"CloudWatch",x:22,y:80,w:125,h:44,s:"CPU > cible"},
+{a:[147,102,196,102],t:"policy"},
+{z:1,x:198,y:28,w:420,h:145,t:"ASG — MIN 1 · DESIRED 3 · MAX 4"},
+{b:"EC2",x:222,y:82,w:75,h:38},
+{b:"EC2",x:312,y:82,w:75,h:38},
+{b:"EC2 +1",x:402,y:82,w:75,h:38,k:"green"},
+{b:"réserve",x:492,y:82,w:75,h:38,k:"ghost"},
+{x:222,y:152,t:"cooldown 300 s après chaque action de scaling"},
+{x:22,y:196,t:"scale-in → connection draining auto → termination (rééquilibre les AZ)"}
+]},
+rds:{h:220,e:[
+{b:"App",x:20,y:88,w:80,h:40},
+{a:[100,108,148,108]},
+{b:"RDS master",x:150,y:88,w:125,h:44,k:"orange"},
+{z:1,x:350,y:20,w:270,h:82,t:"AZ-B — HAUTE DISPO"},
+{b:"Standby",x:382,y:48,w:160,h:40,s:"non lisible · dort"},
+{a:[275,98,378,70],t:"SYNC"},
+{z:1,x:350,y:115,w:270,h:82,t:"SCALE LECTURE"},
+{b:"Read replicas ×15",x:382,y:143,w:160,h:40,k:"blue"},
+{a:[275,118,378,160],t:"ASYNC",d:1},
+{x:20,y:155,t:"Multi-AZ : 1 seul DNS,"},
+{x:20,y:170,t:"failover automatique"},
+{x:20,y:212,t:"SYNC = copie parfaite (secours) · ASYNC = perf (lag possible)"}
+]},
+aurora:{h:235,e:[
+{b:"App",x:20,y:90,w:75,h:40},
+{b:"Writer endpoint",x:145,y:42,w:160,h:40,k:"orange"},
+{b:"Reader endpoint",x:145,y:138,w:160,h:40,k:"blue"},
+{a:[95,100,143,66]},
+{a:[95,115,143,154]},
+{b:"Master",x:385,y:42,w:95,h:40},
+{a:[305,62,383,62],t:"écritures"},
+{b:"R",x:385,y:138,w:58,h:36},{b:"R",x:455,y:138,w:58,h:36},{b:"R",x:525,y:138,w:58,h:36},
+{a:[305,158,383,158],t:"load-balance"},
+{b:"Storage — 6 copies / 3 AZ · 128 To · auto-réparant",x:145,y:196,w:470,h:32,k:"ghost"},
+{x:20,y:212,t:"failover ~30 s"},
+{x:20,y:227,t:"lag <10 ms"}
+]},
+cache:{h:200,e:[
+{b:"App",x:30,y:80,w:90,h:44},
+{b:"ElastiCache",x:235,y:25,w:170,h:44,k:"orange",s:"RAM · sub-ms"},
+{b:"RDS / Aurora",x:235,y:130,w:170,h:44},
+{a:[120,90,233,50],t:"1 · cache hit ?"},
+{a:[120,115,233,148],t:"2 · miss → SELECT"},
+{a:[320,128,320,71],d:1},
+{x:330,y:103,t:"3 · write + TTL"},
+{x:450,y:60,t:"Redis = réplication,"},
+{x:450,y:75,t:"failover, backups"},
+{x:450,y:100,t:"Memcached = simple,"},
+{x:450,y:115,t:"multi-thread, rien"},
+{x:450,y:130,t:"de tout ça"},
+{x:30,y:190,t:"sessions → cache = app stateless (LA solution vs sticky)"}
+]},
+r53:{h:190,e:[
+{b:"Client",x:20,y:70,w:90,h:40},
+{a:[110,90,158,90],t:"site.com ?"},
+{b:"Route 53",x:160,y:70,w:140,h:44,k:"orange",s:"hosted zone"},
+{a:[300,90,348,90],t:"Alias"},
+{b:"ALB",x:350,y:70,w:90,h:40,k:"blue"},
+{x:475,y:50,t:"8 routing policies :"},
+{x:475,y:65,t:"weighted · latency ·"},
+{x:475,y:80,t:"failover · geoloc ·"},
+{x:475,y:95,t:"geoprox · IP · multi"},
+{x:475,y:118,t:"SLA 100 %"},
+{x:20,y:148,t:"CNAME = sous-domaines only · Alias = OK domaine nu, gratuit, jamais EC2"},
+{x:20,y:166,t:"TTL = cache de la réponse · health checks (15 checkers) → DNS failover"}
+]},
+s3:{h:200,e:[
+{z:1,x:25,y:25,w:350,h:150,t:"BUCKET — NOM UNIQUE AU MONDE · RÉGIONAL"},
+{b:"photos/2026/plage.jpg",x:45,y:60,w:215,h:30,k:"ghost"},
+{b:"photos/2026/mont.jpg",x:45,y:98,w:215,h:30,k:"ghost"},
+{b:"backup.zip",x:45,y:136,w:130,h:28,k:"ghost"},
+{x:275,y:75,t:"keys plates,"},
+{x:275,y:90,t:"« dossiers » ="},
+{x:275,y:105,t:"préfixes"},
+{b:"Block Public Access",x:415,y:50,w:200,h:44,k:"orange",s:"+ bucket policy"},
+{b:"Client",x:455,y:135,w:120,h:40},
+{a:[515,135,515,96],t:"GET"},
+{a:[415,72,377,92]},
+{x:415,y:192,t:"objets ≤ 5 To · multi-part > 5 Go"}
+]},
+s3adv:{h:215,e:[
+{b:"S3 bucket",x:28,y:88,w:120,h:44,k:"orange"},
+{a:[148,98,243,32]},
+{a:[148,105,243,82],t:"events"},
+{a:[148,112,243,132]},
+{a:[148,120,243,182]},
+{b:"SNS",x:245,y:12,w:110,h:38},
+{b:"SQS",x:245,y:62,w:110,h:38},
+{b:"Lambda",x:245,y:112,w:110,h:38},
+{b:"EventBridge",x:245,y:162,w:110,h:38,k:"blue"},
+{x:400,y:25,t:"⚠ resource policy sur la"},
+{x:400,y:40,t:"destination : Principal ="},
+{x:400,y:55,t:"s3.amazonaws.com"},
+{x:400,y:90,t:"filtrage prefix / suffix"},
+{x:400,y:170,t:"EventBridge : filtrage JSON,"},
+{x:400,y:185,t:"archive & replay, 18+ services"},
+{x:28,y:160,t:"s3:ObjectCreated:*"}
+]},
+eb:{h:185,e:[
+{b:"ton code",x:22,y:70,w:100,h:44},
+{a:[122,92,173,92],t:"deploy"},
+{b:"Beanstalk",x:175,y:70,w:130,h:44,k:"orange",s:"gratuit"},
+{a:[305,92,353,92],t:"CFN"},
+{z:1,x:355,y:18,w:265,h:150,t:"INFRA CRÉÉE — CONTRÔLE TOTAL"},
+{b:"ALB",x:375,y:55,w:105,h:34},{b:"ASG",x:495,y:55,w:105,h:34},
+{b:"EC2",x:375,y:102,w:105,h:34},{b:"RDS",x:495,y:102,w:105,h:34},
+{x:22,y:150,t:"Application →"},
+{x:22,y:165,t:"Version → Environnement"}
+]}
+};
+
 /* Sidebar */
 (function(){
   const groups = [
     {label:"Fondations", ids:["iam","concepts"]},
-    {label:"Compute & stockage", ids:["ec2","ebs","ami","efs","s3"]},
+    {label:"Compute & stockage", ids:["ec2","ebs","ami","efs","s3","s3adv"]},
     {label:"Réseau & scaling", ids:["elb","asg","r53"]},
     {label:"Données", ids:["rds","aurora","cache"]},
     {label:"Déploiement", ids:["eb"]}
@@ -619,8 +904,9 @@ function esc(x){return x} // contenu maîtrisé (mes propres notes)
   SERVICES.forEach(s=>{
     h += `<article class="svc" id="${s.id}">
       <div class="svc-head"><span class="icon">${s.icon}</span><h2>${s.name}</h2><span class="tag">${s.tag}</span></div>
-      <div class="svc-body">
-        <div class="notes">` +
+      <div class="svc-body">` +
+      (DIAGRAMS[s.id] ? `<div class="diagram"><div class="d-head">Schéma</div>${dg(DIAGRAMS[s.id])}</div>` : "") +
+        `<div class="notes">` +
       s.notes.map(n=>`<div class="note"><h4>${n.t}</h4><p>${n.b}</p></div>`).join("") +
       `</div>
         <div class="triggers"><div class="t-title">Déclencheurs exam</div>` +
