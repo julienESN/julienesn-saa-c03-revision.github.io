@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAA-C03 · Console de révision — Julien</title>
+<meta name="description" content="Fiches de révision AWS Solutions Architect Associate (SAA-C03) — approche exam-first avec réflexes FinOps par service.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B1220;
+  --surface:#121C2C;
+  --surface-2:#182438;
+  --inset:#0D1626;
+  --line:#233350;
+  --line-soft:#1B2A44;
+  --text:#E9EEF6;
+  --muted:#8FA1BC;
+  --faint:#5F7292;
+  --orange:#FF9D2E;
+  --orange-dim:rgba(255,157,46,.12);
+  --green:#3ECF8E;
+  --green-dim:rgba(62,207,142,.10);
+  --blue:#5CA8FF;
+  --radius:12px;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --display:'Space Grotesk',sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:120px}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:15.5px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 400px at 75% -80px, rgba(255,157,46,.07), transparent 60%),
+             radial-gradient(700px 500px at -10% 20%, rgba(92,168,255,.05), transparent 55%);
+}
+::selection{background:rgba(255,157,46,.28)}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em;background:var(--inset);border:1px solid var(--line-soft);padding:1px 6px;border-radius:5px;color:#CBD8EC}
+
+/* ---------- Topbar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;gap:18px;
+  padding:0 22px;height:58px;
+  background:rgba(11,18,32,.85);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line-soft);
+}
+.brand{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap}
+.brand b{color:var(--orange);font-weight:600}
+.tabs{display:flex;gap:6px;margin-left:auto}
+.tab{
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;
+  color:var(--muted);background:transparent;border:1px solid transparent;
+  padding:7px 14px;border-radius:8px;cursor:pointer;transition:all .15s;
+}
+.tab:hover{color:var(--text);border-color:var(--line)}
+.tab.active{color:var(--orange);border-color:rgba(255,157,46,.4);background:var(--orange-dim)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+/* ---------- Layout ---------- */
+.shell{position:relative;z-index:1;display:grid;grid-template-columns:236px 1fr;max-width:1240px;margin:0 auto}
+.sidebar{
+  position:sticky;top:58px;align-self:start;
+  height:calc(100vh - 58px);overflow-y:auto;
+  padding:26px 14px 40px 22px;
+  border-right:1px solid var(--line-soft);
+  scrollbar-width:thin;
+}
+.side-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:18px 0 8px 10px}
+.side-label:first-child{margin-top:0}
+.snav{display:flex;flex-direction:column;gap:2px}
+.snav a{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 10px;border-radius:8px;
+  color:var(--muted);font-size:13.5px;font-weight:500;
+}
+.snav a:hover{background:var(--surface);color:var(--text);text-decoration:none}
+.snav .chip{
+  font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.03em;
+  min-width:34px;text-align:center;
+  padding:2px 4px;border-radius:5px;
+  background:var(--inset);border:1px solid var(--line-soft);color:var(--faint);
+}
+.snav a:hover .chip{border-color:rgba(255,157,46,.5);color:var(--orange)}
+.snav a.active{background:var(--orange-dim);color:var(--text)}
+.snav a.active .chip{border-color:rgba(255,157,46,.6);color:var(--orange);background:rgba(255,157,46,.08)}
+
+main{padding:0 34px 90px;min-width:0}
+
+/* ---------- Hero ---------- */
+.hero{padding:58px 0 38px;border-bottom:1px solid var(--line-soft);margin-bottom:44px}
+.hero h1{
+  font-family:var(--display);font-weight:700;
+  font-size:clamp(38px,5.4vw,58px);line-height:1.04;letter-spacing:-.02em;
+}
+.hero h1 .hl{color:var(--orange)}
+.hero .prompt{
+  font-family:var(--mono);font-size:13.5px;color:var(--muted);
+  margin-top:16px;
+}
+.hero .prompt::after{content:"▊";color:var(--orange);animation:blink 1.1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.stat{
+  background:var(--surface);border:1px solid var(--line-soft);border-radius:10px;
+  padding:12px 18px;min-width:130px;
+}
+.stat .n{font-family:var(--display);font-size:26px;font-weight:700;color:var(--text)}
+.stat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+.stat.accent .n{color:var(--orange)}
+.stat.green .n{color:var(--green)}
+.hero .method{
+  margin-top:26px;font-size:14px;color:var(--muted);max-width:640px;
+  border-left:2px solid var(--line);padding-left:14px;
+}
+.hero .method b{color:var(--text)}
+
+/* ---------- Service cards ---------- */
+.svc{margin-bottom:40px;scroll-margin-top:80px}
+.svc-head{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+.svc-head .icon{
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  padding:5px 9px;border-radius:7px;
+  background:var(--orange-dim);border:1px solid rgba(255,157,46,.35);color:var(--orange);
+  align-self:center;white-space:nowrap;
+}
+.svc-head h2{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.01em}
+.svc-head .tag{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+.svc-body{
+  background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);
+  overflow:hidden;
+}
+.notes{padding:20px 24px 8px}
+.note{margin-bottom:14px}
+.note h4{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:3px;letter-spacing:.01em}
+.note p{color:#C6D2E4;font-size:14.5px}
+.note p b,.note p strong{color:var(--text)}
+.note p .warn{color:var(--orange);font-weight:600}
+
+.triggers{
+  margin:10px 24px 18px;
+  background:var(--inset);border:1px solid var(--line-soft);border-radius:10px;
+  padding:14px 16px 8px;
+}
+.triggers .t-title{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--orange);margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.triggers .t-title::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--orange)}
+.trg{
+  display:flex;gap:10px;align-items:baseline;
+  padding:7px 8px;margin:0 -8px 4px;border-radius:7px;
+  font-size:13.5px;line-height:1.5;
+}
+.trg:hover{background:rgba(255,157,46,.05)}
+.trg .p{font-family:var(--mono);color:var(--orange);font-weight:600;flex:none}
+.trg .q{color:var(--muted)}
+.trg .arr{color:var(--faint);flex:none;font-family:var(--mono)}
+.trg .a{color:var(--text);font-weight:600}
+
+.finops{
+  display:flex;gap:12px;align-items:flex-start;
+  margin:0 24px 22px;
+  background:var(--green-dim);border:1px solid rgba(62,207,142,.28);border-radius:10px;
+  padding:13px 16px;
+}
+.finops .fo-badge{
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.1em;
+  color:#06281A;background:var(--green);
+  padding:3px 8px;border-radius:5px;flex:none;margin-top:2px;
+}
+.finops p{font-size:13.5px;color:#BFEBD6;line-height:1.55}
+.finops p b{color:#E4FBF0}
+
+/* ---------- Réflexes view ---------- */
+.view{display:none}
+.view.active{display:block}
+.rx-intro{margin:44px 0 22px}
+.rx-intro h2{font-family:var(--display);font-size:32px;font-weight:700;letter-spacing:-.01em}
+.rx-intro p{color:var(--muted);margin-top:6px;max-width:620px;font-size:14.5px}
+.search{
+  width:100%;max-width:520px;
+  font-family:var(--mono);font-size:13.5px;color:var(--text);
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:11px 16px;margin:14px 0 28px;
+}
+.search::placeholder{color:var(--faint)}
+.rx-group{margin-bottom:26px}
+.rx-group h3{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:8px;display:flex;align-items:center;gap:10px;
+}
+.rx-group h3::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+.rx-list{background:var(--surface);border:1px solid var(--line-soft);border-radius:10px;padding:8px 14px}
+.rx-empty{color:var(--faint);font-family:var(--mono);font-size:13px;padding:30px 0;text-align:center}
+
+/* ---------- Flashcards ---------- */
+.fc-wrap{max-width:660px;margin:50px auto 0;text-align:center}
+.fc-wrap h2{font-family:var(--display);font-size:32px;font-weight:700}
+.fc-wrap .sub{color:var(--muted);font-size:14.5px;margin:8px auto 26px;max-width:520px}
+.fc-progress{font-family:var(--mono);font-size:12px;color:var(--faint);margin-bottom:14px}
+.fc-progress b{color:var(--orange)}
+.fcard{
+  position:relative;min-height:250px;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:36px 40px;transition:border-color .2s, transform .12s;
+  user-select:none;
+}
+.fcard:hover{border-color:rgba(255,157,46,.45)}
+.fcard:active{transform:scale(.99)}
+.fcard .fc-svc{
+  position:absolute;top:16px;left:16px;
+  font-family:var(--mono);font-size:10.5px;font-weight:600;
+  color:var(--orange);background:var(--orange-dim);border:1px solid rgba(255,157,46,.3);
+  padding:3px 9px;border-radius:6px;
+}
+.fcard .fc-side{
+  position:absolute;top:16px;right:16px;
+  font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.1em;
+}
+.fcard .fc-q{font-size:19px;font-weight:600;line-height:1.45;color:var(--text)}
+.fcard .fc-a{font-size:20px;font-weight:600;line-height:1.5;color:var(--orange);display:none}
+.fcard.flipped{background:var(--surface-2);border-color:rgba(255,157,46,.5)}
+.fcard.flipped .fc-q{display:none}
+.fcard.flipped .fc-a{display:block}
+.fcard .fc-hint{position:absolute;bottom:14px;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.fc-btns{display:flex;justify-content:center;gap:10px;margin-top:22px;flex-wrap:wrap}
+.btn{
+  font-family:var(--mono);font-size:12.5px;font-weight:500;
+  color:var(--text);background:var(--surface);border:1px solid var(--line);
+  padding:10px 18px;border-radius:9px;cursor:pointer;transition:all .15s;
+}
+.btn:hover{border-color:var(--orange);color:var(--orange)}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:#20130145;color:#231301;font-weight:600}
+.btn.primary:hover{filter:brightness(1.08);color:#231301}
+.fc-kbd{margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.fc-kbd kbd{border:1px solid var(--line);border-radius:4px;padding:1px 6px;background:var(--inset)}
+
+/* ---------- Footer ---------- */
+footer{
+  margin-top:70px;padding-top:26px;border-top:1px solid var(--line-soft);
+  font-family:var(--mono);font-size:11.5px;color:var(--faint);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+footer b{color:var(--muted);font-weight:500}
+
+/* ---------- Responsive ---------- */
+@media(max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  main{padding:0 20px 70px}
+  .hero{padding:40px 0 30px}
+  .topbar{padding:0 14px;gap:10px}
+  .brand{font-size:11.5px}
+  .tab{padding:6px 10px;font-size:11.5px}
+  .notes,.triggers,.finops{margin-left:16px;margin-right:16px}
+  .notes{padding:16px 0 6px}
+  .fcard{padding:30px 22px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">julien@<b>saa-c03</b>:~$ revise --exam-first</div>
+  <nav class="tabs" aria-label="Modes">
+    <button class="tab active" data-view="fiches">Fiches</button>
+    <button class="tab" data-view="reflexes">Réflexes exam</button>
+    <button class="tab" data-view="rappel">Rappel actif</button>
+  </nav>
+</div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Services"></aside>
+  <main>
+
+    <!-- ================= VUE FICHES ================= -->
+    <section class="view active" id="view-fiches">
+      <div class="hero">
+        <h1>AWS Certified<br>Solutions Architect <span class="hl">— Associate</span></h1>
+        <div class="prompt">objectif : 720/1000 · septembre 2026 · notes manuscrites → réflexes exam</div>
+        <div class="stats" id="stats"></div>
+        <p class="method"><b>Méthode :</b> chaque service se lit en 3 couches — les notes (comprendre), les <b style="color:var(--orange)">déclencheurs exam</b> (scénario → réponse, ce que la SAA teste vraiment), et le <b style="color:var(--green)">réflexe FinOps</b> (l'angle coût, ma signature). Pour le rappel actif : onglet dédié, cahier fermé.</p>
+      </div>
+      <div id="services"></div>
+      <footer>
+        <span>Construit à partir de mes notes manuscrites — cours Stéphane Maarek (Udemy)</span>
+        <span><b>Julien Esnault</b> · FinOps Cloud Consultant</span>
+      </footer>
+    </section>
+
+    <!-- ================= VUE RÉFLEXES ================= -->
+    <section class="view" id="view-reflexes">
+      <div class="rx-intro">
+        <h2>Réflexes exam</h2>
+        <p>Tous les déclencheurs scénario → réponse, en un seul tableau de bord. C'est le format réel des questions SAA : reconnaître le mot-clé, dégainer le service. Filtre par mot-clé pour cibler tes révisions de dernière minute.</p>
+      </div>
+      <input class="search" id="rx-search" type="search" placeholder="› filtrer : udp, failover, snapshot, lambda…" aria-label="Filtrer les réflexes">
+      <div id="rx-board"></div>
+      <footer>
+        <span id="rx-count"></span>
+        <span><b>Julien Esnault</b></span>
+      </footer>
+    </section>
+
+    <!-- ================= VUE RAPPEL ACTIF ================= -->
+    <section class="view" id="view-rappel">
+      <div class="fc-wrap">
+        <h2>Rappel actif</h2>
+        <p class="sub">Le levier n°1 de la mémorisation : se forcer à récupérer l'info <b>avant</b> de vérifier. Lis le scénario, réponds à voix haute, puis retourne la carte.</p>
+        <div class="fc-progress" id="fc-progress"></div>
+        <div class="fcard" id="fcard" role="button" tabindex="0" aria-label="Carte de révision — cliquer pour retourner">
+          <span class="fc-svc" id="fc-svc"></span>
+          <span class="fc-side" id="fc-side">SCÉNARIO</span>
+          <div class="fc-q" id="fc-q"></div>
+          <div class="fc-a" id="fc-a"></div>
+          <span class="fc-hint">cliquer / espace pour retourner</span>
+        </div>
+        <div class="fc-btns">
+          <button class="btn" id="fc-prev">← préc.</button>
+          <button class="btn primary" id="fc-flip">Retourner</button>
+          <button class="btn" id="fc-next">suiv. →</button>
+          <button class="btn" id="fc-shuffle">⇄ mélanger</button>
+        </div>
+        <div class="fc-kbd"><kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>espace</kbd> retourner</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+<script>
+const SERVICES = [
+{id:"iam",icon:"IAM",name:"IAM",tag:"Identité & accès",
+notes:[
+{t:"Principes",b:"<b>Root</b> : uniquement pour le setup initial. 1 utilisateur physique = 1 user IAM. Users rattachés à des <b>groups</b>, permissions (policies JSON) attachées aux groups. <b>Password policy forte + MFA</b> partout."},
+{t:"Rôles & access keys",b:"<b>Rôles IAM</b> = donner des permissions aux services AWS (EC2, Lambda…) — jamais d'access keys en dur sur une instance. <b>Access keys</b> = réservées au CLI / SDK."},
+{t:"Audit",b:"<b>IAM Credentials Report</b> (état des credentials de tous les users) + <b>IAM Access Advisor</b> (permissions réellement utilisées → appliquer le least privilege)."}
+],
+triggers:[
+{q:"Une EC2 doit accéder à S3",a:"Rôle IAM attaché à l'instance (jamais d'access keys)"},
+{q:"Auditer les permissions / credentials",a:"Credentials Report + Access Advisor"},
+{q:"Principe de sécurité à appliquer partout",a:"Least privilege"}
+],
+finops:"IAM est <b>gratuit</b> et c'est la base de la gouvernance des coûts : restreindre qui peut lancer quoi (types d'instances, régions) via policies + tags obligatoires = pas de dérive budgétaire."},
+
+{id:"ec2",icon:"EC2",name:"EC2",tag:"Compute",
+notes:[
+{t:"Ports à connaître",b:"<code>22</code> SSH/SFTP · <code>21</code> FTP · <code>80</code> HTTP · <code>443</code> HTTPS · <code>3389</code> RDP (Windows)."},
+{t:"Adresses IP",b:"IPv4 <b>publique</b> (change à chaque stop/start) / <b>privée</b> / <b>Elastic IP</b> (fixe, payante si non attachée)."},
+{t:"ENI",b:"Carte réseau <b>virtuelle détachable</b> (IP privée fixe, SG…) → failover en la rattachant à une autre instance, <span class='warn'>même AZ</span>."},
+{t:"Hibernate",b:"Stop + <b>RAM sauvegardée sur l'EBS root</b> (chiffré, taille ≥ RAM), à activer <b>au lancement</b> → reprise sans cold start. Pour workloads stateful à init longue. Max 60 jours."},
+{t:"Instance Store",b:"Disque <b>physique local</b> ultra-performant mais <span class='warn'>éphémère</span> : perdu au stop/crash. Cache, buffer, scratch. Backups à ta charge."},
+{t:"Placement Groups",b:"<b>Cluster</b> = même rack, latence min, réseau max (big data rapide, un seul AZ). <b>Spread</b> = hardware distinct, <span class='warn'>max 7 instances/AZ</span> (apps critiques isolées des pannes). <b>Partition</b> = isolation par lots, <span class='warn'>7 partitions/AZ</span> (Hadoop, Kafka, Cassandra)."}
+],
+triggers:[
+{q:"Latence réseau minimale entre instances",a:"Placement group Cluster"},
+{q:"Instances critiques isolées des pannes hardware",a:"Spread (max 7/AZ)"},
+{q:"Hadoop / Kafka / Cassandra",a:"Partition"},
+{q:"App à init longue, reprise sans cold start",a:"EC2 Hibernate (RAM → EBS root chiffré)"},
+{q:"IP privée fixe à basculer entre instances",a:"ENI (même AZ)"},
+{q:"Stockage le plus rapide, perte de données acceptable",a:"Instance Store"}
+],
+finops:"Instance stoppée = plus de compute facturé (mais l'<b>EBS reste payant</b>). Elastic IP non attachée = facturée. Le trio gagnant : <b>right-sizing</b> + <b>Spot</b> pour le stateless + <b>Savings Plans</b> pour la base stable."},
+
+{id:"ebs",icon:"EBS",name:"EBS",tag:"Block storage",
+notes:[
+{t:"Nature",b:"Network drive attaché à <b>1 instance</b>, <span class='warn'>même AZ !</span> Capacité <b>provisionnée</b> (facturée entièrement), augmentable. Détachable/rattachable rapidement."},
+{t:"Delete on Termination",b:"<b>true</b> par défaut sur le <b>root</b>, <b>false</b> sur les volumes de données. Contrôlable console/CLI."},
+{t:"Snapshots",b:"Backup incrémental (recommandé de détacher, pas obligatoire). Copiables <b>cross-AZ / cross-région</b>. <b>Archive tier</b> = 75% moins cher, restore 24-72 h. <b>Recycle Bin</b> = règles de rétention anti-suppression. <b>FSR</b> = zéro latence à la 1ère utilisation ($$$)."},
+{t:"Volume types",b:"<b>gp3/gp2</b> SSD général (défaut, boot) · <b>io2/io1</b> SSD hautes IOPS (BDD) · <b>st1</b> HDD débit séquentiel (big data, logs) · <b>sc1</b> HDD froid, le moins cher (archivage). <span class='warn'>st1/sc1 jamais boot volume.</span>"},
+{t:"Multi-Attach",b:"io1/io2 uniquement, <b>max 16 instances</b>, <span class='warn'>même AZ</span>, filesystem cluster-aware requis."},
+{t:"Encryption",b:"KMS (AES-256), transparent — décidé <b>au lancement</b>. Chiffrer un volume existant : <b>snapshot → copie chiffrée → nouveau volume</b>."}
+],
+triggers:[
+{q:"Boot volume",a:"SSD only (gp/io) — jamais st1/sc1"},
+{q:"BDD avec IOPS élevées garanties",a:"io1 / io2"},
+{q:"Gros débit séquentiel pas cher (logs, big data)",a:"st1"},
+{q:"Stockage bloc le moins cher, accès rare",a:"sc1"},
+{q:"Chiffrer un volume non chiffré",a:"snapshot → copie chiffrée → restore"},
+{q:"Volume partagé entre instances (même AZ, cluster)",a:"Multi-Attach io1/io2 (max 16)"},
+{q:"Snapshots conservés longtemps à moindre coût",a:"Snapshot Archive tier (-75%, restore 24-72 h)"}
+],
+finops:"Migration <b>gp2 → gp3</b> = ~20% d'économie à perf égale, sans downtime. Chasser les volumes <b>« available »</b> (orphelins post-terminate) et les snapshots oubliés — gaspillage silencieux n°1 sur EC2."},
+
+{id:"ami",icon:"AMI",name:"AMI",tag:"Images machine",
+notes:[
+{t:"Concept",b:"Image <b>custom</b> d'une instance (OS + config + logiciels). Construite pour <b>une région</b> (copiable cross-région). Sources : AMI publiques AWS, tes AMI, Marketplace."},
+{t:"Process",b:"Instance → customisation → stop → <b>create AMI</b> (crée des snapshots EBS au passage) → launch d'instances depuis l'AMI dans une autre AZ/région."}
+],
+triggers:[
+{q:"Déployer vite des instances pré-configurées",a:"Golden AMI"},
+{q:"Utiliser une AMI dans une autre région",a:"Copier l'AMI vers la région cible"}
+],
+finops:"Golden AMI = boot rapide = les instances d'un ASG sont opérationnelles plus vite → moins de sur-provisioning « au cas où » pendant les pics."},
+
+{id:"efs",icon:"EFS",name:"EFS",tag:"File storage partagé",
+notes:[
+{t:"Nature",b:"Filesystem réseau <b>partagé</b> (NFS), <span class='warn'>Linux/POSIX only</span>, <b>multi-AZ</b>, élastique : scale auto + paiement à l'usage. ≠ EBS (1 instance, 1 AZ, provisionné)."},
+{t:"Architecture",b:"EFS est <b>régional</b> ; on y accède via <b>1 mount target par AZ</b> (une ENI + IP dans le subnet de l'AZ)."},
+{t:"Storage classes",b:"<b>Standard</b> (fréquent) / <b>IA</b> (rare, moins cher) / <b>One Zone</b> (1 seule AZ, encore moins cher). <b>Lifecycle policy</b> = bascule auto vers IA après X jours sans accès."}
+],
+triggers:[
+{q:"Fichiers partagés entre plusieurs instances Linux multi-AZ",a:"EFS"},
+{q:"Filesystem partagé pour Windows",a:"FSx (pas EFS !)"}
+],
+finops:"<b>Lifecycle policy vers EFS-IA</b> = jusqu'à ~90% d'économie sur les fichiers peu accédés. One Zone pour le non-critique re-créable."},
+
+{id:"concepts",icon:"NET",name:"Concepts clés",tag:"HA · réseau · DR",
+notes:[
+{t:"Scalabilité",b:"<b>Vertical</b> = plus GROS (scale up/down, limité par la taille max) — BDD. <b>Horizontal</b> = plus NOMBREUX (scale out/in) — web distribué. <b>HA</b> = survivre à la perte d'une AZ → multi-AZ (≥2). Horizontal + multi-AZ = scalabilité ET haute dispo."},
+{t:"TCP vs UDP",b:"<b>TCP</b> = connexion fiable, ordre garanti (HTTP, SSH, BDD, email). <b>UDP</b> = rapide, sans garantie (DNS, streaming live, VoIP, gaming) — quand vitesse > fiabilité."},
+{t:"CIDR",b:"<code>/32</code> = 1 IP (My IP) · <code>/24</code> = 256 · <code>/16</code> = 65k (VPC) · <code>/0</code> = tout Internet. VPC = <b>régional</b>, subnet = <b>1 seule AZ</b> (public = route vers IGW / privé = via NAT)."},
+{t:"DR : RTO & RPO",b:"<b>RTO</b> = durée max d'interruption (temps pour redémarrer). <b>RPO</b> = perte de données max (temps depuis la dernière copie). Petits RTO/RPO = cher."},
+{t:"SLA",b:"Engagement <b>contractuel</b> de disponibilité (crédits/remboursement si violé). Route 53 = seul service AWS à SLA 100%."}
+],
+triggers:[
+{q:"Vertical vs horizontal",a:"plus GROS vs plus NOMBREUX"},
+{q:"RTO vs RPO",a:"temps d'arrêt vs données perdues"},
+{q:"UDP requis (streaming, gaming, VoIP)",a:"NLB côté load balancing (jamais ALB)"}
+],
+finops:"Le DR est un arbitrage financier : réplication temps réel (RPO≈0, Global Aurora) coûte bien plus que des backups quotidiens. Dimensionner RTO/RPO au <b>vrai</b> besoin métier, pas au réflexe « zéro perte »."},
+
+{id:"elb",icon:"ELB",name:"Elastic Load Balancer",tag:"Répartition de charge",
+notes:[
+{t:"Concept",b:"LB <b>managé</b> : répartit le trafic sur plusieurs cibles/AZ + <b>health checks</b> + point d'entrée unique (1 DNS) + haute dispo. AWS gère maintenance/scaling du LB."},
+{t:"Les 3 types",b:"<b>ALB</b> = L7 (HTTP/S), routing par URL/host/header, SG obligatoire → web, microservices. <b>NLB</b> = L4 (TCP/UDP), perf extrême, 1 IP statique par AZ → millions req/s. <b>GWLB</b> = L3 → appliances réseau (firewall, inspection). CLB déprécié."},
+{t:"Listener → Target Group",b:"Listener écoute port+protocole, applique ses <b>règles</b> (priorité croissante, <b>1ère qui matche gagne</b>) sinon Default action. Le <b>Target Group</b> porte les health checks, la stickiness et le deregistration delay — l'ALB route vers le TG, pas vers les instances (découplage)."},
+{t:"SG chaining",b:"Le SG des instances autorise le HTTP <b>depuis le SG de l'ALB</b> (référence de SG, pas d'IP) → seul l'ALB atteint les instances. Règles SG = additives, stateful."},
+{t:"Sticky Sessions",b:"Même client → même cible via cookie (config au <b>TG</b>). <b>Duration-based</b> = cookie du LB (<code>AWSALB</code>), tu fixes la durée. <b>App-based</b> = cookie custom de l'appli. Inconvénient : <span class='warn'>déséquilibre la charge</span>. Vraie solution = app <b>stateless</b> (JWT / Redis / DynamoDB) — sticky = béquille legacy."},
+{t:"Cross-Zone LB",b:"Trafic réparti uniformément sur <b>toutes les cibles de toutes les AZ</b> (sinon : 50/50 entre AZ d'abord). <b>ALB : activé par défaut, gratuit</b> / <b>NLB-GWLB : désactivé, payant</b> si activé (frais inter-AZ)."},
+{t:"SSL & SNI",b:"<b>CLB</b> = 1 seul certificat. <b>ALB/NLB</b> = plusieurs certificats via <b>SNI</b> : le client annonce son domaine au début du handshake → le LB sert le bon certificat. Permet N domaines HTTPS derrière 1 LB."},
+{t:"Connection Draining",b:"(= Deregistration Delay) Instance retirée → stop des nouvelles requêtes, les connexions en cours finissent. <b>1-3600 s, défaut 300 s</b>, 0 = off. Délai dépassé = coupure forcée. Long = uploads / court = API rapides. Config : TG → Attributes."}
+],
+triggers:[
+{q:"UDP / gaming / VoIP / perf réseau extrême",a:"NLB (L4)"},
+{q:"Routing par URL / host / microservices HTTP",a:"ALB (L7)"},
+{q:"Firewall / inspection de trafic",a:"GWLB (L3)"},
+{q:"Users déconnectés au scale-in, modif minimale",a:"Sticky sessions (solution propre = stateless + ElastiCache)"},
+{q:"503 renvoyé par l'ALB",a:"Aucune cible healthy dans le Target Group"},
+{q:"Plusieurs domaines HTTPS sur un seul LB",a:"SNI (ALB/NLB) — CLB impossible"},
+{q:"Une instance bien plus chargée que les autres",a:"Sticky sessions activées"},
+{q:"IP statique requise pour le LB",a:"NLB (1 IP/AZ) — l'ALB n'en a pas"}
+],
+finops:"Un ALB mutualisé pour N domaines via <b>SNI</b> = N-1 load balancers économisés (~16 $/mois pièce). Cross-zone sur NLB = <b>frais inter-AZ</b> — à activer en connaissance de cause."},
+
+{id:"asg",icon:"ASG",name:"Auto Scaling Group",tag:"Élasticité",
+notes:[
+{t:"Concept",b:"Ajoute/retire des instances automatiquement. <b>Min / Max / Desired</b>. Gratuit (tu paies les instances). Crée via <b>Launch Template</b>. Instance unhealthy → remplacée. Multi-AZ = HA."},
+{t:"Les 4 scaling policies",b:"<b>Target Tracking</b> = maintenir une métrique à X% (la reco). <b>Step</b> = alarme CloudWatch → ±N instances. <b>Scheduled</b> = date/heure fixe (pic connu). <b>Predictive</b> = ML sur l'historique (14 j), scale <b>AVANT</b> le pic (vs les autres, réactives)."},
+{t:"Mécanique",b:"Métrique classique : CPU. <b>Cooldown = 300 s</b> après chaque action (laisse les métriques se stabiliser). Scale-in → <b>connection draining automatique</b> (si TG attaché) → termination policy (rééquilibre les AZ)."}
+],
+triggers:[
+{q:"Charge variable imprévisible",a:"Target Tracking"},
+{q:"Pic connu à date fixe (vendredi 17h)",a:"Scheduled scaling"},
+{q:"Patterns récurrents à anticiper",a:"Predictive scaling (ML)"},
+{q:"« Maintenir le CPU moyen à 40% »",a:"Target Tracking"}
+],
+finops:"L'ASG <b>est</b> un outil FinOps : capacité alignée sur la demande réelle. Min trop haut = gaspillage permanent 24/7 ; draining trop long = scale-in ralenti = instances payées à ne rien faire."},
+
+{id:"rds",icon:"RDS",name:"RDS",tag:"BDD relationnelle managée",
+notes:[
+{t:"Concept",b:"BDD managée : Postgres, MySQL, MariaDB, Oracle, SQL Server. AWS gère patching/backups. <span class='warn'>Pas de SSH</span>. Sous le capot : <b>EC2 cachée + stockage EBS</b> (gp3/io1)."},
+{t:"Read Replicas",b:"Copies <b>lecture seule</b> pour scaler les SELECT. Max 15. Réplication <b>ASYNC</b> (lag possible — éventuelle cohérence). Same/cross-AZ/<b>cross-région</b>. Promouvable en base autonome. L'appli doit adapter sa connection string."},
+{t:"Multi-AZ",b:"Standby <b>SYNC</b> dans une autre AZ : copie parfaite qui <b>dort</b> (non lisible, HA only). <b>1 seul DNS → failover automatique</b>. Activation single→multi sans downtime. SYNC car un secours doit être parfait / ASYNC car la perf ne doit pas attendre."},
+{t:"RDS Custom",b:"Accès OS/SSH — <b>Oracle & SQL Server uniquement</b>. Désactiver l'automation mode + snapshot avant customisation. Échelle : RDS (zéro accès) → RDS Custom → EC2 (tout à ta charge)."},
+{t:"Backups",b:"Auto = <b>1-35 j</b> + point-in-time restore (transaction logs /5 min). <b>Snapshot manuel = rétention illimitée</b> (survit à la suppression). Restore = toujours une <b>nouvelle</b> base. Aurora : Database Cloning rapide (copy-on-write)."},
+{t:"Security",b:"Chiffrement KMS <b>au lancement</b> ; chiffrer après coup → snapshot → copie chiffrée → restore (comme EBS). TLS in-flight. <b>IAM Authentication</b> (token, sans mot de passe — MySQL/PG only)."},
+{t:"RDS Proxy",b:"Proxy managé = <b>pooling de connexions</b> (peu de connexions permanentes réutilisées au lieu de milliers ouvertes/fermées). Cas clé : <b>Lambda</b> (scale par milliers → tue la base → le proxy absorbe). Failover -66%. <span class='warn'>VPC only, jamais public</span>."}
+],
+triggers:[
+{q:"Trop de lectures / reporting / analytics",a:"Read Replicas"},
+{q:"Survivre à une panne d'AZ / failover",a:"Multi-AZ"},
+{q:"SYNC ou ASYNC ?",a:"Multi-AZ = SYNC · Read Replicas = ASYNC"},
+{q:"Lambda épuise les connexions de la base",a:"RDS Proxy"},
+{q:"Conserver un backup > 35 jours",a:"Snapshot manuel"},
+{q:"Accès à l'OS d'un RDS",a:"RDS Custom (Oracle / SQL Server only)"},
+{q:"Chiffrer une base existante non chiffrée",a:"snapshot → copie chiffrée → restore"}
+],
+finops:"Base peu utilisée → <b>snapshot + delete</b>, restore au besoin. Réplicas cross-région = frais de transfert réseau. Le standby Multi-AZ <b>double le coût</b> : à réserver à la prod, pas au dev."},
+
+{id:"aurora",icon:"AUR",name:"Aurora",tag:"BDD cloud-native",
+notes:[
+{t:"Concept",b:"Compatible <b>MySQL (5x le débit)</b> / <b>PostgreSQL (3x)</b> — chiffres AWS. Storage propriétaire : <b>6 copies / 3 AZ</b>, auto-scaling jusqu'à 128 To, auto-réparant (pas d'EBS classique)."},
+{t:"Réplicas & endpoints",b:"Jusqu'à <b>15 réplicas</b>, lag &lt;10 ms, failover ~30 s. <b>Writer endpoint</b> = master (écritures, suit le failover). <b>Reader endpoint</b> = load-balance les réplicas (auto-géré). → 2 connection strings <b>fixes</b>, Aurora gère la tuyauterie (≠ RDS : une adresse par réplica à gérer)."},
+{t:"Advanced",b:"<b>Réplica Auto Scaling</b> (ajoute selon la charge) · <b>Custom Endpoints</b> (sous-groupe de réplicas, ex. analytics) · <b>Serverless</b> (scale auto, paiement à la seconde → charges intermittentes) · <b>Global</b> (1 région R/W + 5 lecture, lag &lt;1 s, <b>RTO &lt;1 min</b> → DR) · <b>ML</b> (SageMaker en SQL) · <b>Babelfish</b> (comprend le T-SQL → migration SQL Server)."},
+{t:"vs RDS",b:"~<b>+20%</b> plus cher que RDS mais plus efficace à charge élevée. Oracle/SQL Server/MariaDB → RDS obligatoire. MySQL/PG + hautes exigences → Aurora."}
+],
+triggers:[
+{q:"Charge imprévisible / intermittente, pas de capacity planning",a:"Aurora Serverless"},
+{q:"DR multi-région, RTO < 1 min, lecteurs mondiaux",a:"Global Aurora"},
+{q:"Analytics isolée sans impacter le trafic web",a:"Custom Endpoint"},
+{q:"Migration depuis SQL Server",a:"Babelfish (Aurora PG)"},
+{q:"Scaler les lectures sans gérer chaque réplica",a:"Reader endpoint"},
+{q:"Moteur Oracle / SQL Server requis",a:"RDS (pas Aurora)"}
+],
+finops:"Aurora = +20% : ne le choisir que pour un <b>vrai</b> besoin perf/HA (sinon RDS suffit). <b>Serverless</b> pour dev/test et charges intermittentes = payer les secondes réellement consommées."},
+
+{id:"cache",icon:"ELC",name:"ElastiCache",tag:"Cache in-memory",
+notes:[
+{t:"Concept",b:"Cache <b>in-memory managé</b> (RAM) → latence sub-ms + soulage la base. Fonctionne devant <b>toute</b> source (RDS, Aurora…) : c'est l'appli qui interroge le cache d'abord. <span class='warn'>Nécessite de modifier le code.</span>"},
+{t:"Redis vs Memcached",b:"<b>Redis</b> = réplication Multi-AZ, failover, backups, structures riches → <b>le défaut</b>. <b>Memcached</b> = simple, multi-thread, sharding, <span class='warn'>pas de réplication ni backup</span> → cache pur, perte acceptable."},
+{t:"2 cas d'usage",b:"<b>Cache de BDD</b> : check cache avant la base (hit = rapide / miss = lire + écrire au cache), prévoir l'invalidation (TTL). <b>Session store</b> : sessions dans le cache → app <b>stateless</b> (LA solution propre vs sticky sessions)."},
+{t:"Replicas ou cache ?",b:"Lectures <b>répétitives</b> (mêmes données) → ElastiCache. Lectures <b>variées/uniques</b> → Read Replicas. Combinables (pattern fort trafic) : cache → réplicas → master (écritures only)."}
+],
+triggers:[
+{q:"Réduire la charge de lecture (données fréquemment accédées)",a:"ElastiCache"},
+{q:"Lectures variées / requêtes uniques",a:"Read Replicas (le cache ne sert à rien)"},
+{q:"Sessions partagées / app stateless",a:"ElastiCache (Redis)"},
+{q:"Cache avec HA / backups",a:"Redis · cache jetable simple → Memcached"}
+],
+finops:"Un petit nœud Redis absorbe ce que plusieurs réplicas RDS coûteraient : à volume de lectures répétitives égal, le cache est <b>l'option la moins chère</b>."},
+
+{id:"r53",icon:"R53",name:"Route 53",tag:"DNS",
+notes:[
+{t:"Records DNS",b:"<b>A</b> = nom → IPv4 · <b>AAAA</b> = IPv6 · <b>CNAME</b> = nom → nom · <b>NS</b> = serveurs responsables du domaine. <b>TTL</b> = durée de cache de la réponse chez le client."},
+{t:"Route 53",b:"DNS <b>managé + autoritatif</b>. Hosted zone <b>publique</b> (Internet) ou <b>privée</b> (VPC). Seul service AWS à <b>SLA 100%</b>. 0,50 $/mois/zone."},
+{t:"TTL",b:"Haut = moins de requêtes 💰 mais <b>propagation lente</b> / bas = l'inverse. Obligatoire sur chaque record <span class='warn'>sauf Alias</span>. Astuce : <b>baisser le TTL avant</b> un changement d'IP prévu."},
+{t:"CNAME vs Alias",b:"<b>CNAME</b> = sous-domaines only (<code>app.site.com</code> ✓ / <code>site.com</code> ✗), payant. <b>Alias</b> = pointe vers une <b>ressource AWS</b> (ALB, CloudFront, S3, API GW…), IP résolues auto, OK <b>même sur le domaine nu</b>, gratuit. Liste fermée : <span class='warn'>jamais vers une EC2</span> → record A + Elastic IP, ou ALB devant."},
+{t:"Les 8 routing policies",b:"<b>Simple</b> (pas de HC) · <b>Weighted</b> (%, canary) · <b>Latency</b> (la région qui répond le plus vite) · <b>Failover</b> (primaire + secondaire, HC obligatoire) · <b>Geolocation</b> (pays de l'user, + record Default) · <b>Geoproximity</b> (proximité + <b>bias ±99</b> qui déplace la frontière) · <b>IP-based</b> (CIDR connus : FAI, bureaux) · <b>Multi-Value</b> (Simple + HC, max 8 valeurs saines)."},
+{t:"Health Checks",b:"~15 checkers mondiaux / 30 s — base du <b>DNS failover</b>. 3 types : <b>Endpoint</b> (URL/IP publique) · <b>Calculated</b> (combine plusieurs) · <b>CloudWatch Alarm</b> (Route 53 ne voit pas dans un VPC → ressources privées surveillées via alarme)."},
+{t:"Domaines & hybride",b:"Domaine acheté ailleurs → mettre les <b>4 NS d'AWS chez le registrar</b> (le vendeur garde le domaine, Route 53 gère les records). <b>Hybrid DNS (Resolver)</b> : <b>Inbound</b> = la question DNS entre dans AWS (l'on-prem résout des noms AWS) / <b>Outbound</b> = elle sort (une EC2 résout des noms on-prem)."}
+],
+triggers:[
+{q:"Domaine nu (site.com) → ALB / CloudFront",a:"Alias obligatoire (CNAME interdit sur l'apex)"},
+{q:"Site de secours / DR",a:"Failover routing + health check"},
+{q:"Contenu par pays / restrictions légales",a:"Geolocation (+ record Default)"},
+{q:"Déplacer du trafic entre régions avec un curseur",a:"Geoproximity (bias)"},
+{q:"Router des plages IP connues (FAI, bureaux)",a:"IP-based"},
+{q:"Multi-endpoints sains sans passer par un ELB",a:"Multi-Value (Simple = pas de HC !)"},
+{q:"Health check d'une ressource privée en VPC",a:"CloudWatch Alarm"},
+{q:"Où EST l'utilisateur vs qui répond le plus VITE",a:"Geolocation vs Latency"},
+{q:"Canary 90/10 entre deux versions",a:"Weighted"},
+{q:"Alias vers une instance EC2",a:"Impossible — record A + Elastic IP, ou ALB devant"}
+],
+finops:"Requêtes <b>Alias</b> vers ressources AWS = <b>gratuites</b> (CNAME facturé). TTL haut = facture DNS réduite. 0,50 $/mois/hosted zone — supprimer les zones de test."},
+
+{id:"s3",icon:"S3",name:"Amazon S3",tag:"Object storage",
+notes:[
+{t:"Concept",b:"Stockage d'<b>objets</b>, scalabilité infinie. <b>Bucket</b> = nom unique <span class='warn'>au monde</span>, défini dans <b>une région</b>. <b>Objet</b> = fichier + sa <b>key</b>."},
+{t:"Key",b:"La key = le <b>nom complet</b> (<code>photos/2026/plage.jpg</code> = UN seul nom). S3 = stockage <b>plat</b> : les « dossiers » sont une illusion de la console (= préfixes). Adresse = <code>s3://bucket/key</code>."},
+{t:"Limites",b:"Max <b>5 To</b>/objet ; au-delà de 5 Go → <b>multi-part upload</b> obligatoire. Use cases : backups, data lake, sites statiques, archives, médias."},
+{t:"Security",b:"<b>IAM policy</b> (user-based) / <b>Bucket policy</b> (JSON — public & <b>cross-account</b>) / <b>Block Public Access</b> = verrou par défaut qui bloque le public <span class='warn'>même si la policy l'autorise</span>. Accès si Allow (IAM OU policy) ET aucun Deny. Resource : <code>bucket/*</code> pour GetObject !"},
+{t:"Features",b:"<b>Static website hosting</b> · <b>Versioning</b> (protège des suppressions/écrasements) · <b>Replication</b> CRR (cross-région) / SRR (same) — <span class='warn'>versioning requis des 2 côtés</span>, réplication async, nouveaux objets only (sauf Batch Replication)."},
+{t:"Storage classes",b:"<b>Standard</b> · <b>Intelligent-Tiering</b> (déplacement auto selon l'usage) · <b>Standard-IA</b> (-45%, frais de récupération) · <b>One Zone-IA</b> (1 AZ, re-créable) · <b>Glacier Instant</b> (archive à accès immédiat, min 90 j) · <b>Glacier Flexible</b> (minutes-heures, min 90 j) · <b>Deep Archive</b> (12-48 h, min 180 j, le moins cher ~1 $/To/mois). <span class='warn'>Durabilité 11 nines PARTOUT</span> — c'est la dispo/le prix qui changent. <b>Express One Zone</b> = latence ms, directory buckets → ML/analytics intensifs."}
+],
+triggers:[
+{q:"Rendre un bucket public",a:"Bucket policy (Principal:*) + désactiver Block Public Access — les 2 !"},
+{q:"Access Denied malgré une policy correcte",a:"Block Public Access encore actif"},
+{q:"Un autre compte AWS doit accéder au bucket",a:"Bucket policy (IAM = mono-compte)"},
+{q:"« Action does not apply to any resource »",a:"Il manque /* dans la Resource (objets ≠ bucket)"},
+{q:"Fréquence d'accès imprévisible",a:"Intelligent-Tiering"},
+{q:"Archive 7-10 ans au coût minimal",a:"Glacier Deep Archive"},
+{q:"Rarement accédé mais dispo immédiate requise",a:"Standard-IA"},
+{q:"Données secondaires re-créables",a:"One Zone-IA"},
+{q:"Perf S3 extrême (ML, analytics)",a:"Express One Zone (directory buckets)"},
+{q:"Répliquer vers une autre région",a:"CRR (versioning activé des 2 côtés)"}
+],
+finops:"<b>LE</b> terrain FinOps : lifecycle rules (30 j → IA, 90 j → Glacier, 1 an → delete) = économies massives. Payer du Standard pour des données jamais lues = gaspillage n°1 du cloud. En cas de doute sur l'usage : <b>Intelligent-Tiering</b>."},
+
+{id:"eb",icon:"EBK",name:"Elastic Beanstalk",tag:"Déploiement",
+notes:[
+{t:"Concept",b:"Déploiement <b>automatisé</b> : tu donnes ton code, Beanstalk crée l'infra classique (EC2, ALB, ASG, RDS…) — c'est du CloudFormation dessous. Vision <b>développeur</b> : le code, pas l'infra. Tu gardes le <b>contrôle total</b> des ressources."},
+{t:"Structure",b:"Gratuit (tu paies les ressources créées). <b>Application → Version</b> (du code) <b>→ Environnement</b> (dev, prod…). Plateformes : Node, Python, Java, Docker…"}
+],
+triggers:[
+{q:"Déployer du code sans gérer l'infra, en gardant le contrôle",a:"Elastic Beanstalk"}
+],
+finops:"Beanstalk est gratuit mais crée des ressources par défaut parfois surdimensionnées — vérifier les types d'instances des environnements dev (single instance suffit souvent)."}
+];
+</script>
+<script>
+/* ============ Rendu ============ */
+const $ = s => document.querySelector(s);
+
+function esc(x){return x} // contenu maîtrisé (mes propres notes)
+
+/* Sidebar */
+(function(){
+  const groups = [
+    {label:"Fondations", ids:["iam","concepts"]},
+    {label:"Compute & stockage", ids:["ec2","ebs","ami","efs","s3"]},
+    {label:"Réseau & scaling", ids:["elb","asg","r53"]},
+    {label:"Données", ids:["rds","aurora","cache"]},
+    {label:"Déploiement", ids:["eb"]}
+  ];
+  let h = "";
+  groups.forEach(g=>{
+    h += `<div class="side-label">${g.label}</div><nav class="snav">`;
+    g.ids.forEach(id=>{
+      const s = SERVICES.find(x=>x.id===id);
+      h += `<a href="#${s.id}" data-goto="${s.id}"><span class="chip">${s.icon}</span>${s.name}</a>`;
+    });
+    h += `</nav>`;
+  });
+  $("#sidebar").innerHTML = h;
+})();
+
+/* Fiches */
+(function(){
+  let h = "";
+  SERVICES.forEach(s=>{
+    h += `<article class="svc" id="${s.id}">
+      <div class="svc-head"><span class="icon">${s.icon}</span><h2>${s.name}</h2><span class="tag">${s.tag}</span></div>
+      <div class="svc-body">
+        <div class="notes">` +
+      s.notes.map(n=>`<div class="note"><h4>${n.t}</h4><p>${n.b}</p></div>`).join("") +
+      `</div>
+        <div class="triggers"><div class="t-title">Déclencheurs exam</div>` +
+      s.triggers.map(t=>`<div class="trg"><span class="p">›</span><span class="q">« ${t.q} »</span><span class="arr">→</span><span class="a">${t.a}</span></div>`).join("") +
+      `</div>
+        <div class="finops"><span class="fo-badge">FINOPS</span><p>${s.finops}</p></div>
+      </div>
+    </article>`;
+  });
+  $("#services").innerHTML = h;
+})();
+
+/* Stats hero */
+(function(){
+  const nT = SERVICES.reduce((a,s)=>a+s.triggers.length,0);
+  $("#stats").innerHTML =
+    `<div class="stat"><div class="n">${SERVICES.length}</div><div class="l">Services</div></div>
+     <div class="stat accent"><div class="n">${nT}</div><div class="l">Réflexes exam</div></div>
+     <div class="stat green"><div class="n">${SERVICES.length}</div><div class="l">Tips FinOps</div></div>
+     <div class="stat"><div class="n">720</div><div class="l">Score cible /1000</div></div>`;
+})();
+
+/* Réflexes board */
+function renderBoard(filter){
+  const f = (filter||"").trim().toLowerCase();
+  let h = "", total = 0;
+  SERVICES.forEach(s=>{
+    const rows = s.triggers.filter(t => !f || (t.q+" "+t.a+" "+s.name).toLowerCase().includes(f));
+    if(!rows.length) return;
+    total += rows.length;
+    h += `<div class="rx-group"><h3>${s.icon} · ${s.name}</h3><div class="rx-list">` +
+      rows.map(t=>`<div class="trg"><span class="p">›</span><span class="q">« ${t.q} »</span><span class="arr">→</span><span class="a">${t.a}</span></div>`).join("") +
+      `</div></div>`;
+  });
+  $("#rx-board").innerHTML = h || `<div class="rx-empty">aucun réflexe ne matche « ${filter} »</div>`;
+  $("#rx-count").textContent = total + " réflexes affichés";
+}
+renderBoard("");
+$("#rx-search").addEventListener("input", e=>renderBoard(e.target.value));
+
+/* ============ Flashcards ============ */
+const DECK_SRC = SERVICES.flatMap(s => s.triggers.map(t => ({svc:s.name, icon:s.icon, q:t.q, a:t.a})));
+let deck = [], idx = 0, flipped = false;
+
+function shuffle(){
+  deck = DECK_SRC.slice();
+  for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+  idx = 0; flipped = false; renderCard();
+}
+function renderCard(){
+  const c = deck[idx];
+  $("#fc-svc").textContent = c.icon + " · " + c.svc;
+  $("#fc-q").textContent = "« " + c.q + " »";
+  $("#fc-a").textContent = c.a;
+  $("#fc-side").textContent = flipped ? "RÉPONSE" : "SCÉNARIO";
+  $("#fcard").classList.toggle("flipped", flipped);
+  $("#fc-progress").innerHTML = `carte <b>${idx+1}</b> / ${deck.length}`;
+}
+function flip(){ flipped = !flipped; renderCard(); }
+function next(){ idx = (idx+1)%deck.length; flipped=false; renderCard(); }
+function prev(){ idx = (idx-1+deck.length)%deck.length; flipped=false; renderCard(); }
+
+$("#fcard").addEventListener("click", flip);
+$("#fcard").addEventListener("keydown", e=>{ if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();} });
+$("#fc-flip").addEventListener("click", flip);
+$("#fc-next").addEventListener("click", next);
+$("#fc-prev").addEventListener("click", prev);
+$("#fc-shuffle").addEventListener("click", shuffle);
+shuffle();
+
+/* ============ Modes / tabs ============ */
+const views = {fiches:"#view-fiches", reflexes:"#view-reflexes", rappel:"#view-rappel"};
+let currentView = "fiches";
+function setView(v){
+  currentView = v;
+  document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
+  $(views[v]).classList.add("active");
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.view===v));
+  window.scrollTo({top:0});
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>setView(t.dataset.view)));
+
+/* Sidebar links: reviennent en vue fiches si besoin */
+document.querySelectorAll("[data-goto]").forEach(a=>{
+  a.addEventListener("click", e=>{
+    if(currentView!=="fiches"){ setView("fiches"); }
+  });
+});
+
+/* Scroll-spy : surligne la section visible dans la sidebar */
+const spyLinks = {};
+document.querySelectorAll("[data-goto]").forEach(a=>spyLinks[a.dataset.goto]=a);
+const spy = new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      document.querySelectorAll(".snav a.active").forEach(x=>x.classList.remove("active"));
+      const l = spyLinks[en.target.id];
+      if(l){ l.classList.add("active"); l.scrollIntoView({block:"nearest"}); }
+    }
+  });
+},{rootMargin:"-15% 0px -75% 0px"});
+document.querySelectorAll(".svc").forEach(s=>spy.observe(s));
+
+/* Raccourcis clavier flashcards (seulement en vue rappel) */
+document.addEventListener("keydown", e=>{
+  if(currentView!=="rappel") return;
+  if(e.target.tagName==="INPUT") return;
+  if(e.key==="ArrowRight") next();
+  else if(e.key==="ArrowLeft") prev();
+  else if(e.key===" "){ e.preventDefault(); flip(); }
+});
+</script>
+</body>
+</html>
