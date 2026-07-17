@@ -628,7 +628,36 @@ triggers:[
 {q:"Chiffrer des millions d'objets existants",a:"Batch Operations (+ S3 Inventory)"},
 {q:"Vue d'ensemble usage & coûts S3 de toute l'orga",a:"Storage Lens"}
 ],
-finops:"<b>Lifecycle rules = le levier d'économie n°1</b> de tout AWS. <b>Storage Lens</b> (métriques gratuites) repère les buckets gaspilleurs à l'échelle de l'orga. <b>Requester Pays</b> refacture l'egress aux consommateurs de tes datasets."}
+finops:"<b>Lifecycle rules = le levier d'économie n°1</b> de tout AWS. <b>Storage Lens</b> (métriques gratuites) repère les buckets gaspilleurs à l'échelle de l'orga. <b>Requester Pays</b> refacture l'egress aux consommateurs de tes datasets."},
+
+{id:"s3sec",icon:"S3🔒",name:"S3 Sécurité",tag:"Encryption · Lock · accès",
+notes:[
+{t:"Les 4 chiffrements côté serveur (SSE)",b:"<b>SSE-S3</b> = clé gérée par S3 (AES-256), <b>activé par défaut</b>, zéro effort, zéro contrôle. <b>SSE-KMS</b> = clé gérée dans <b>KMS</b> : tu choisis la clé, tu contrôles qui peut l'utiliser (key policy) et <b>chaque usage est tracé dans CloudTrail</b> (audit). <b>DSSE-KMS</b> = KMS en double couche (exigences réglementaires). <b>SSE-C</b> = TU fournis la clé à chaque requête (AWS ne la stocke jamais) — <span class='warn'>HTTPS obligatoire + CLI/SDK only, pas de console</span>."},
+{t:"SSE-S3 vs SSE-KMS — la vraie différence",b:"Le chiffrement est <b>identique</b> (AES-256). Ce qui change : <b>qui tient la clé</b>. SSE-S3 = boîte noire (S3 chiffre, tu ne vois rien). SSE-KMS = <b>contrôle + audit</b> : révoquer l'accès à la clé = plus personne ne lit les objets, même avec accès au bucket ; et tu sais QUI a déchiffré QUOI et QUAND. Contrepartie : <span class='warn'>coût par appel API + quota</span>."},
+{t:"KMS limitation (le piège)",b:"Chaque upload/download SSE-KMS = appels API KMS (<code>GenerateDataKey</code> / <code>Decrypt</code>) qui comptent dans le <b>quota KMS régional</b> (5 500 à 30 000 req/s selon la région). Bucket à très fort trafic → <span class='warn'>throttling</span>. Solutions : augmenter le quota via la <b>Service Quotas Console</b>, ou activer <b>S3 Bucket Key</b> = une clé intermédiaire par bucket → <b>~99% d'appels KMS en moins</b>."},
+{t:"Chiffrement in-transit & client",b:"<b>SSL/TLS</b> partout (endpoints HTTPS). Forcer le HTTPS : bucket policy avec <code>aws:SecureTransport = false</code> → Deny. <b>Client-side encryption</b> = tu chiffres AVANT l'upload, AWS ne voit jamais le clair."},
+{t:"CORS",b:"Le navigateur bloque les requêtes <b>cross-origin</b> (origine = scheme + host + port). Si un site sur l'origine A charge des ressources d'un bucket B → le bucket B doit renvoyer le header <code>Access-Control-Allow-Origin</code> autorisant l'origine A (config CORS du bucket, en JSON)."},
+{t:"MFA Delete",b:"Exige un code MFA pour <b>supprimer définitivement une version</b> ou <b>désactiver le versioning</b>. Prérequis : <span class='warn'>versioning activé</span>. Activable <b>par le root uniquement, via CLI</b>. Protection anti-suppression accidentelle/malveillante."},
+{t:"Access Logs & Pre-signed URLs",b:"<b>Access Logs</b> = toutes les requêtes vers le bucket loggées dans un autre bucket (même région). <span class='warn'>Jamais le bucket lui-même comme cible → boucle infinie de logs !</span> <b>Pre-signed URL</b> = URL temporaire qui <b>hérite des permissions de celui qui la génère</b> → donner un accès ponctuel à un objet privé sans toucher aux policies (défaut 1 h)."},
+{t:"Object Lock & Vault Lock (WORM)",b:"<b>WORM</b> = Write Once Read Many : l'objet ne peut plus être modifié/supprimé pendant la rétention. <b>S3 Object Lock</b> (versioning requis) : mode <b>Compliance</b> = intouchable par tout le monde, <span class='warn'>même le root, même AWS</span>, durée non réductible / mode <b>Governance</b> = pareil, SAUF pour les IAM users ayant la permission spéciale <code>s3:BypassGovernanceRetention</code>. <b>Legal Hold</b> = blocage <b>sans date de fin</b>, indépendant de la rétention, posé/retiré via <code>s3:PutObjectLegalHold</code> (litige en cours). <b>Glacier Vault Lock</b> = même idée mais la policy elle-même devient immuable sur tout le vault."},
+{t:"Access Points",b:"Des <b>points d'entrée nommés</b> vers un bucket, chacun avec <b>sa propre policy</b> (+ son DNS, restriction VPC possible). Au lieu d'UNE bucket policy géante pour 15 équipes → 15 access points simples (finance → /finance, ventes → /ventes). La sécurité <b>scale</b>."},
+{t:"Object Lambda",b:"Un <b>Lambda transforme l'objet à la volée pendant la lecture</b> — l'original dans le bucket ne change jamais. Chaîne : appli → <b>Object Lambda Access Point</b> → Lambda → <b>Access Point</b> → bucket. Cas d'usage : masquer des données perso (PII) pour un environnement de test, convertir un format, redimensionner des images, enrichir avec d'autres données. <b>Une seule copie stockée</b>, N vues différentes."}
+],
+triggers:[
+{q:"Audit : savoir qui a déchiffré quel objet",a:"SSE-KMS (CloudTrail)"},
+{q:"Throttling KMS sur un bucket à fort trafic",a:"S3 Bucket Key (ou ↑ quota via Service Quotas Console)"},
+{q:"Le client gère sa clé, AWS ne la stocke jamais",a:"SSE-C (HTTPS + CLI/SDK only)"},
+{q:"Forcer le HTTPS sur un bucket",a:"Bucket policy Deny si aws:SecureTransport = false"},
+{q:"Site web bloqué en chargeant des assets d'un autre bucket",a:"Configurer CORS sur le bucket cible"},
+{q:"Empêcher la suppression accidentelle de versions",a:"MFA Delete (root + CLI, versioning requis)"},
+{q:"Partager temporairement un objet privé",a:"Pre-signed URL"},
+{q:"Réglementation : objet intouchable X années, même par root",a:"Object Lock mode Compliance"},
+{q:"Rétention contournable par certains admins",a:"Mode Governance (s3:BypassGovernanceRetention)"},
+{q:"Litige : bloquer un objet sans durée définie",a:"Legal Hold"},
+{q:"Policies d'accès différentes par équipe sur un même bucket",a:"S3 Access Points"},
+{q:"Masquer les PII à la lecture sans dupliquer les données",a:"S3 Object Lambda"}
+],
+finops:"<b>SSE-S3 est gratuit, SSE-KMS facture chaque appel API</b> — sur un bucket à millions de requêtes, la facture KMS surprend. Réflexe : <b>S3 Bucket Key</b> (~99% d'appels en moins = ~99% du coût KMS en moins). <b>Object Lambda</b> évite de stocker N copies transformées d'un même dataset."}
 ];
 </script>
 <script>
@@ -874,6 +903,22 @@ eb:{h:185,e:[
 {b:"EC2",x:375,y:102,w:105,h:34},{b:"RDS",x:495,y:102,w:105,h:34},
 {x:22,y:150,t:"Application →"},
 {x:22,y:165,t:"Version → Environnement"}
+]},
+s3sec:{h:200,e:[
+{z:1,x:20,y:18,w:600,h:90,t:"OBJECT LAMBDA — transformation à la lecture"},
+{b:"Appli",x:38,y:52,w:80,h:36},
+{a:[118,70,148,70]},
+{b:"OL Access Point",x:150,y:52,w:130,h:36,k:"blue"},
+{a:[280,70,308,70]},
+{b:"Lambda",x:310,y:52,w:90,h:36,k:"orange",s:"transforme"},
+{a:[400,70,428,70]},
+{b:"Access Point",x:430,y:52,w:105,h:36},
+{a:[535,70,558,70]},
+{b:"S3",x:560,y:52,w:48,h:36},
+{x:38,y:130,t:"SSE-S3 = clé S3, défaut, gratuit, zéro contrôle"},
+{x:38,y:148,t:"SSE-KMS = ta clé KMS → contrôle + audit CloudTrail, mais $/appel + quota"},
+{x:38,y:166,t:"SSE-C = ta clé fournie à chaque requête (CLI only) · DSSE = KMS ×2"},
+{x:38,y:188,t:"⚠ quota KMS → S3 Bucket Key = ~99% d'appels en moins"}
 ]}
 };
 
@@ -881,7 +926,7 @@ eb:{h:185,e:[
 (function(){
   const groups = [
     {label:"Fondations", ids:["iam","concepts"]},
-    {label:"Compute & stockage", ids:["ec2","ebs","ami","efs","s3","s3adv"]},
+    {label:"Compute & stockage", ids:["ec2","ebs","ami","efs","s3","s3adv","s3sec"]},
     {label:"Réseau & scaling", ids:["elb","asg","r53"]},
     {label:"Données", ids:["rds","aurora","cache"]},
     {label:"Déploiement", ids:["eb"]}
