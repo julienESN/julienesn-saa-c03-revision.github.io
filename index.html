@@ -657,7 +657,32 @@ triggers:[
 {q:"Policies d'accès différentes par équipe sur un même bucket",a:"S3 Access Points"},
 {q:"Masquer les PII à la lecture sans dupliquer les données",a:"S3 Object Lambda"}
 ],
-finops:"<b>SSE-S3 est gratuit, SSE-KMS facture chaque appel API</b> — sur un bucket à millions de requêtes, la facture KMS surprend. Réflexe : <b>S3 Bucket Key</b> (~99% d'appels en moins = ~99% du coût KMS en moins). <b>Object Lambda</b> évite de stocker N copies transformées d'un même dataset."}
+finops:"<b>SSE-S3 est gratuit, SSE-KMS facture chaque appel API</b> — sur un bucket à millions de requêtes, la facture KMS surprend. Réflexe : <b>S3 Bucket Key</b> (~99% d'appels en moins = ~99% du coût KMS en moins). <b>Object Lambda</b> évite de stocker N copies transformées d'un même dataset."},
+
+{id:"cf",icon:"CF",name:"CloudFront & Global Accelerator",tag:"CDN · edge network",
+notes:[
+{t:"CloudFront = CDN",b:"Ton contenu mis en <b>cache dans 600+ edge locations</b> mondiales → l'utilisateur est servi depuis le point le plus proche. Bénéfices : <b>read performance</b> (latence minimale) + <b>protection DDoS intégrée</b> (Shield, + intégration WAF). Le cache vit selon un <b>TTL</b> (ex : 1 jour)."},
+{t:"Origins",b:"<b>S3 bucket</b> : le duo <b>OAC (Origin Access Control) + bucket policy</b> → le bucket reste 100% privé, <span class='warn'>seul CloudFront peut lire</span> (fini le Principal:*  public !). <b>Custom origin (HTTP)</b> : S3 <i>website</i> (public, lui), ALB, EC2, n'importe quel serveur HTTP. <b>VPC origin</b> : atteindre un ALB/EC2 <b>privé dans le VPC</b> sans jamais l'exposer sur Internet."},
+{t:"Cache Invalidation",b:"Tu mets à jour l'origin → <span class='warn'>CloudFront ne le sait pas</span> : les edges servent l'ancienne version jusqu'à expiration du TTL. Pour forcer : <b>Invalidation</b> = purger le cache de <b>tous les edges</b>, tout (<code>/*</code>) ou un chemin (<code>/images/*</code>). Au prochain accès, l'edge re-télécharge la version fraîche depuis l'origin."},
+{t:"Geo Restriction",b:"<b>Allowlist</b> (seuls ces pays passent) ou <b>Blocklist</b> (ces pays sont bloqués), pays déterminé via base Geo-IP. Cas d'usage exam : <b>copyright / droits de diffusion</b> par pays."},
+{t:"CloudFront vs S3 CRR",b:"<b>CloudFront</b> = cache mondial (600+ edges), TTL, idéal <b>contenu statique disponible partout</b>. <b>Cross Region Replication</b> = vraie copie dans quelques régions choisies, quasi temps réel, <b>read-only</b>, idéal <b>contenu dynamique à faible latence dans QUELQUES régions</b>. Cache temporaire vs copie réelle."},
+{t:"Global Accelerator",b:"Accélère le <b>chemin réseau</b> vers ton appli : l'utilisateur entre dans le <b>backbone AWS à l'edge le plus proche</b> (~60% du trajet sur réseau privé AWS au lieu de l'Internet public). Fournit <b>2 Anycast IP statiques</b>. <span class='warn'>Aucun cache</span> — juste un raccourci réseau. TCP <b>et UDP</b>. Health checks + <b>failover régional < 1 min</b>."},
+{t:"Unicast vs Anycast",b:"<b>Unicast</b> = 1 IP → 1 serveur (le monde normal). <b>Anycast</b> = <b>la même IP annoncée par des centaines d'edges</b> → le routage Internet (BGP) livre le client à l'edge <b>le plus proche</b> automatiquement. C'est le tour de magie de Global Accelerator : 2 IP fixes, valables partout, toujours optimales."},
+{t:"CloudFront vs Global Accelerator",b:"Les deux utilisent les edges, mais : <b>CloudFront = cache du CONTENU</b> (HTTP only, TTL, statique) / <b>Global Accelerator = accélère la CONNEXION</b> (TCP/UDP, zéro cache, chaque requête va à l'origin). GA brille pour : gaming/VoIP (<b>UDP</b>), <b>IP statiques exigées</b> (whitelist firewall d'entreprise), failover ultra-rapide."}
+],
+triggers:[
+{q:"Contenu statique servi vite dans le monde entier",a:"CloudFront"},
+{q:"Site S3 privé servi mondialement",a:"CloudFront + OAC + bucket policy"},
+{q:"Atteindre un ALB privé (jamais exposé) via CloudFront",a:"VPC origin"},
+{q:"Ancienne version encore servie après mise à jour",a:"Cache Invalidation (/* ou /chemin/*)"},
+{q:"Bloquer un contenu par pays (copyright)",a:"Geo Restriction (allowlist/blocklist)"},
+{q:"Contenu dynamique, faible latence dans quelques régions",a:"S3 Cross Region Replication"},
+{q:"App TCP/UDP mondiale (gaming, VoIP), pas de cache",a:"Global Accelerator"},
+{q:"Le client exige des IP statiques à whitelister",a:"Global Accelerator (2 Anycast IP)"},
+{q:"Failover régional en moins d'une minute",a:"Global Accelerator (health checks)"},
+{q:"Même IP partout, routé vers le plus proche",a:"Anycast IP"}
+],
+finops:"L'egress <b>S3 → CloudFront est gratuit</b> et le tarif CloudFront → Internet est <b>inférieur</b> à l'egress S3 direct : un CDN qui accélère ET réduit la facture. Attention aux <b>invalidations</b> : 1 000 chemins/mois gratuits, payant au-delà — la vraie solution propre = <b>fichiers versionnés</b> (app-v2.js) : nouveau nom, nouveau cache, zéro invalidation."}
 ];
 </script>
 <script>
@@ -919,6 +944,27 @@ s3sec:{h:200,e:[
 {x:38,y:148,t:"SSE-KMS = ta clé KMS → contrôle + audit CloudTrail, mais $/appel + quota"},
 {x:38,y:166,t:"SSE-C = ta clé fournie à chaque requête (CLI only) · DSSE = KMS ×2"},
 {x:38,y:188,t:"⚠ quota KMS → S3 Bucket Key = ~99% d'appels en moins"}
+]},
+cf:{h:230,e:[
+{z:1,x:20,y:18,w:295,h:130,t:"CLOUDFRONT — cache le contenu"},
+{b:"User",x:35,y:55,w:70,h:34},
+{a:[105,72,138,72]},
+{b:"Edge (cache)",x:140,y:55,w:105,h:34,k:"orange",s:"TTL"},
+{a:[245,72,262,72],d:1,t:""},
+{b:"S3+OAC",x:264,y:55,w:42,h:34,k:"ghost"},
+{x:35,y:118,t:"HTTP · statique · si TTL pas"},
+{x:35,y:134,t:"expiré → jamais d'aller-retour"},
+{z:1,x:330,y:18,w:290,h:130,t:"GLOBAL ACCELERATOR — accélère le réseau"},
+{b:"User",x:345,y:55,w:70,h:34},
+{a:[415,72,448,72],t:"Anycast"},
+{b:"Edge",x:450,y:55,w:60,h:34,k:"blue"},
+{a:[510,72,538,72],t:"backbone"},
+{b:"ALB/EC2",x:540,y:55,w:68,h:34,k:"ghost"},
+{x:345,y:118,t:"TCP/UDP · zéro cache · chaque"},
+{x:345,y:134,t:"requête va à l'origin, plus vite"},
+{x:24,y:172,t:"Anycast : 2 IP statiques annoncées par TOUS les edges → routé vers le plus proche"},
+{x:24,y:190,t:"Invalidation : /* ou /images/* → purge les edges avant l'expiration du TTL"},
+{x:24,y:208,t:"Geo Restriction : allowlist / blocklist par pays (copyright)"}
 ]}
 };
 
@@ -927,7 +973,7 @@ s3sec:{h:200,e:[
   const groups = [
     {label:"Fondations", ids:["iam","concepts"]},
     {label:"Compute & stockage", ids:["ec2","ebs","ami","efs","s3","s3adv","s3sec"]},
-    {label:"Réseau & scaling", ids:["elb","asg","r53"]},
+    {label:"Réseau & scaling", ids:["elb","asg","r53","cf"]},
     {label:"Données", ids:["rds","aurora","cache"]},
     {label:"Déploiement", ids:["eb"]}
   ];
